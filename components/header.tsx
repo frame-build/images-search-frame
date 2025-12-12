@@ -7,7 +7,7 @@ export const Header = () => (
     <div className="flex flex-col gap-4">
       <div className="flex items-center gap-2">
         <ImageUpIcon className="size-4" />
-        <h1 className="font-semibold tracking-tight">vectr.store</h1>
+        <h1 className="font-semibold tracking-tight">frame.store</h1>
       </div>
       <p className="text-balance text-muted-foreground">
         A free, open-source template for building natural language image search
