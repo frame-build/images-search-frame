@@ -1,2 +1,15 @@
 .env
 .env.ts
+node_modules
+.next
+.env.local
+.vercel
+.turbo
+.turbo-build-stats.json
+.turbo-build-stats.json.gz
+.turbo-build-stats.json.gz.br
+.turbo-build-stats.json.gz.br.gz
+.turbo-build-stats.json.gz.br.gz.br
+.turbo-build-stats.json.gz.br.gz.br.gz
+.turbo-build-stats.json.gz.br.gz.br.gz.br
+.turbo-build-stats.json.gz.br.gz.br.gz.br.gz
