@@ -98,6 +98,9 @@ export const Header = () => {
             Source code
           </a>
         </Button>
+        <Button asChild size="sm" variant="outline">
+          <a href="/api/auth/logout">Log out</a>
+        </Button>
       </div>
     </div>
   );

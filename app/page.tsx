@@ -1,8 +1,10 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
 import { Header } from "@/components/header";
+import { Login } from "@/components/login";
 import { Results } from "@/components/results";
 import { UploadedImagesProvider } from "@/components/uploaded-images-provider";
+import { getSession } from "@/lib/auth";
 
 export const metadata: Metadata = {
   title: "vectr",
@@ -27,17 +29,22 @@ const ImagesSkeleton = () => (
   </div>
 );
 
-const Home = () => (
-  <UploadedImagesProvider>
-    <div className="container relative mx-auto grid items-start gap-12 px-4 py-8 sm:gap-16 lg:grid-cols-[300px_1fr]">
-      <div className="lg:sticky lg:top-8">
-        <Header />
+const Home = async () => {
+  const session = await getSession();
+  if (!session) return <Login />;
+
+  return (
+    <UploadedImagesProvider>
+      <div className="container relative mx-auto grid items-start gap-12 px-4 py-8 sm:gap-16 lg:grid-cols-[300px_1fr]">
+        <div className="lg:sticky lg:top-8">
+          <Header />
+        </div>
+        <Suspense fallback={<ImagesSkeleton />}>
+          <Results />
+        </Suspense>
       </div>
-      <Suspense fallback={<ImagesSkeleton />}>
-        <Results />
-      </Suspense>
-    </div>
-  </UploadedImagesProvider>
-);
+    </UploadedImagesProvider>
+  );
+};
 
 export default Home;
