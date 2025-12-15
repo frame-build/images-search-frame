@@ -3,7 +3,11 @@ import { Suspense } from "react";
 import { ImportPhotosButton } from "./deploy";
 import { Button } from "./ui/button";
 
-export const Header = () => {
+type HeaderProps = {
+  hasSession?: boolean;
+};
+
+export const Header = ({ hasSession }: HeaderProps) => {
   const repoUrl =
     process.env.NEXT_PUBLIC_REPO_URL ?? "https://github.com/vercel/vectr";
 
@@ -92,18 +96,38 @@ export const Header = () => {
         </li>
       </ul>
 
-      <div className="flex gap-2">
-        <Suspense fallback={null}>
-          <ImportPhotosButton />
-        </Suspense>
-        <Button asChild size="sm" variant="outline">
-          <a href={repoUrl} rel="noopener noreferrer" target="_blank">
-            Source code
-          </a>
-        </Button>
-        <Button asChild size="sm" variant="outline">
-          <a href="/api/auth/logout">Log out</a>
-        </Button>
+      <div className="flex flex-col gap-2">
+        <div className="flex gap-2">
+          <Suspense fallback={null}>
+            <ImportPhotosButton />
+          </Suspense>
+          <Button asChild size="sm" variant="outline">
+            <a href={repoUrl} rel="noopener noreferrer" target="_blank">
+              Source code
+            </a>
+          </Button>
+        </div>
+
+        {hasSession ? (
+          <div>
+            <Button asChild size="sm" variant="outline">
+              <a href="/api/auth/logout">Log out</a>
+            </Button>
+          </div>
+        ) : null}
+
+        <p className="text-muted-foreground text-xs">
+          Props to{" "}
+          <a
+            className="underline"
+            href="https://www.linkedin.com/in/haydenbleasel/"
+            rel="noopener noreferrer"
+            target="_blank"
+          >
+            Hayden Bleasel
+          </a>{" "}
+          for the original repo.
+        </p>
       </div>
     </div>
   );

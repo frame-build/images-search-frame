@@ -1,0 +1,20 @@
+diff --git a/index.js b/index.js
+index a30b32cdf91b6eb501f9ad314804dcca434a9e9c..fda823adddaa8665a975edc617ecaf568cf467d1 100644
+--- a/index.js
++++ b/index.js
+@@ -18,13 +18,8 @@ var debug = require("./debug");
+ }());
+ 
+ // Whether to use the native URL object or the legacy url module
+-var useNativeURL = false;
+-try {
+-  assert(new URL(""));
+-}
+-catch (error) {
+-  useNativeURL = error.code === "ERR_INVALID_URL";
+-}
++// Always prefer WHATWG URL to avoid `url.parse()` deprecation warnings in Node.
++var useNativeURL = true;
+ 
+ // URL fields to preserve in copy operations
+ var preservedUrlFields = [

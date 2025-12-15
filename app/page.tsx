@@ -36,6 +36,11 @@ type PageProps = {
     | Record<string, string | string[] | undefined>;
 };
 
+const HeaderGate = async () => {
+  const session = await getSession();
+  return <Header hasSession={Boolean(session)} />;
+};
+
 const AuthenticatedResults = async () => {
   const session = await getSession();
   if (!session) return <Login />;
@@ -58,7 +63,9 @@ const Home = ({ searchParams }: PageProps) => {
       </Suspense>
       <div className="container relative mx-auto grid items-start gap-12 px-4 py-8 sm:gap-16 lg:grid-cols-[300px_1fr]">
         <div className="lg:sticky lg:top-8">
-          <Header />
+          <Suspense fallback={<Header hasSession={false} />}>
+            <HeaderGate />
+          </Suspense>
         </div>
         <Suspense fallback={<ImagesSkeleton />}>
           <AuthenticatedResults />
