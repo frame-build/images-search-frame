@@ -5,8 +5,13 @@ import type { PutBlobResult } from "@vercel/blob";
 import { FatalError, getStepMetadata, RetryableError } from "workflow";
 
 const upstash = Search.fromEnv();
+const MAX_INDEX_ATTEMPTS = 5;
 
-export const indexImage = async (blob: PutBlobResult, text: string) => {
+export const indexImage = async (
+  blob: PutBlobResult,
+  text: string,
+  extraMetadata?: Record<string, unknown>
+) => {
   "use step";
 
   const { attempt, stepStartedAt, stepId } = getStepMetadata();
@@ -23,7 +28,7 @@ export const indexImage = async (blob: PutBlobResult, text: string) => {
     const result = await index.upsert({
       id: blob.pathname,
       content: { text },
-      metadata: { ...blob },
+      metadata: { ...blob, ...(extraMetadata ?? {}) },
     });
 
     console.log(
@@ -62,8 +67,8 @@ export const indexImage = async (blob: PutBlobResult, text: string) => {
       throw new FatalError(`[${stepId}] Invalid data for indexing: ${message}`);
     }
 
-    // After 5 attempts for search indexing, give up
-    if (attempt >= 5) {
+    // After MAX_INDEX_ATTEMPTS attempts for search indexing, give up
+    if (attempt >= MAX_INDEX_ATTEMPTS) {
       throw new FatalError(
         `[${stepId}] Failed to index image after ${attempt} attempts as of ${stepStartedAt.toISOString()}: ${message}`
       );
@@ -74,4 +79,4 @@ export const indexImage = async (blob: PutBlobResult, text: string) => {
   }
 };
 
-indexImage.maxRetries = 5;
+indexImage.maxRetries = MAX_INDEX_ATTEMPTS;

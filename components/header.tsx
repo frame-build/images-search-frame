@@ -1,5 +1,6 @@
 import { CheckCircle2Icon, ImageUpIcon } from "lucide-react";
-import { DeployButton } from "./deploy";
+import { Suspense } from "react";
+import { ImportPhotosButton } from "./deploy";
 import { Button } from "./ui/button";
 
 export const Header = () => {
@@ -11,7 +12,7 @@ export const Header = () => {
       <div className="flex flex-col gap-4">
         <div className="flex items-center gap-2">
           <ImageUpIcon className="size-4" />
-          <h1 className="font-semibold tracking-tight">ACC Image Search</h1>
+          <h1 className="font-semibold tracking-tight">frame.acc.ImageSearch</h1>
         </div>
         <p className="text-balance text-muted-foreground">
           Open-source semantic search for images stored in Autodesk Construction
@@ -92,7 +93,9 @@ export const Header = () => {
       </ul>
 
       <div className="flex gap-2">
-        <DeployButton />
+        <Suspense fallback={null}>
+          <ImportPhotosButton />
+        </Suspense>
         <Button asChild size="sm" variant="outline">
           <a href={repoUrl} rel="noopener noreferrer" target="_blank">
             Source code

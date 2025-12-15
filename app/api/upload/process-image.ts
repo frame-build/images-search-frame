@@ -8,8 +8,12 @@ import { uploadImage } from "./upload-image";
 type SerializableFile = {
   buffer: ArrayBuffer;
   name: string;
+  pathname?: string;
   type: string;
   size: number;
+  addRandomSuffix?: boolean;
+  allowOverwrite?: boolean;
+  metadata?: Record<string, unknown>;
 };
 
 export const processImage = async (fileData: SerializableFile) => {
@@ -43,7 +47,7 @@ export const processImage = async (fileData: SerializableFile) => {
 
     // Step 3: Index in search with metadata
     console.log("[WORKFLOW] Step 3/3: Indexing in search");
-    await indexImage(blob, text);
+    await indexImage(blob, text, fileData.metadata);
     console.log("[WORKFLOW] Step 3/3 complete. Image indexed successfully");
 
     const workflowDuration = Date.now() - workflowStartTime;

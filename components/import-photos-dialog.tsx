@@ -1,5 +1,6 @@
 "use client";
 
+import { CheckCircle2Icon, CheckIcon } from "lucide-react";
 import Image from "next/image";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import {
@@ -9,6 +10,7 @@ import {
   useMemo,
   useState,
 } from "react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -49,6 +51,44 @@ async function getJson<T>(url: string): Promise<T> {
   return data as T;
 }
 
+async function postJson<T>(
+  url: string,
+  body: unknown,
+  options?: { signal?: AbortSignal }
+): Promise<T> {
+  const res = await fetch(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+    signal: options?.signal,
+  });
+  const data: unknown = await res.json().catch(() => null);
+  if (!res.ok) {
+    const message =
+      isRecord(data) && typeof data.error === "string"
+        ? data.error
+        : "Request failed";
+    throw new Error(message);
+  }
+  return data as T;
+}
+
+function buildUploadSummary(
+  started: number,
+  skipped: number,
+  failed: number
+): string {
+  const parts: string[] = [];
+  parts.push(`Started ${started} upload${started === 1 ? "" : "s"}`);
+  if (skipped > 0) {
+    parts.push(`${skipped} skipped`);
+  }
+  if (failed > 0) {
+    parts.push(`${failed} failed`);
+  }
+  return `${parts.join(" • ")}.`;
+}
+
 export function ImportPhotosDialog({ open }: Props) {
   const router = useRouter();
   const pathname = usePathname();
@@ -64,7 +104,16 @@ export function ImportPhotosDialog({ open }: Props) {
   const [loadingHubs, setLoadingHubs] = useState(false);
   const [loadingProjects, setLoadingProjects] = useState(false);
   const [loadingPhotos, setLoadingPhotos] = useState(false);
+  const [loadingUploaded, setLoadingUploaded] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const [selectedPhotos, setSelectedPhotos] = useState<Set<string>>(
+    () => new Set()
+  );
+  const [uploadedPhotoIds, setUploadedPhotoIds] = useState<Set<string>>(
+    () => new Set()
+  );
 
   const close = useCallback(() => {
     const params = new URLSearchParams(searchParams.toString());
@@ -74,7 +123,9 @@ export function ImportPhotosDialog({ open }: Props) {
   }, [pathname, router, searchParams]);
 
   useEffect(() => {
-    if (!open) return;
+    if (!open) {
+      return;
+    }
 
     setError(null);
     setLoadingHubs(true);
@@ -87,13 +138,19 @@ export function ImportPhotosDialog({ open }: Props) {
   }, [open]);
 
   useEffect(() => {
-    if (!open) return;
-    if (!hubId) return;
+    if (!open) {
+      return;
+    }
+    if (!hubId) {
+      return;
+    }
 
     setError(null);
     setProjects([]);
     setPhotos([]);
     setProjectId("");
+    setSelectedPhotos(new Set());
+    setUploadedPhotoIds(new Set());
 
     setLoadingProjects(true);
     getJson<{ projects: AccProject[] }>(
@@ -107,11 +164,17 @@ export function ImportPhotosDialog({ open }: Props) {
   }, [hubId, open]);
 
   useEffect(() => {
-    if (!open) return;
-    if (!projectId) return;
+    if (!open) {
+      return;
+    }
+    if (!projectId) {
+      return;
+    }
 
     setError(null);
     setPhotos([]);
+    setSelectedPhotos(new Set());
+    setUploadedPhotoIds(new Set());
 
     setLoadingPhotos(true);
     getJson<{ photos: AccPhoto[] }>(
@@ -124,22 +187,170 @@ export function ImportPhotosDialog({ open }: Props) {
       .finally(() => setLoadingPhotos(false));
   }, [open, projectId]);
 
+  useEffect(() => {
+    if (!open) {
+      return;
+    }
+    if (!projectId) {
+      return;
+    }
+    if (photos.length === 0) {
+      setUploadedPhotoIds(new Set());
+      return;
+    }
+
+    const controller = new AbortController();
+    const photoIds = photos.map((photo) => photo.id).filter(Boolean);
+    if (photoIds.length === 0) {
+      return;
+    }
+
+    setLoadingUploaded(true);
+    postJson<{ uploadedIds: string[] }>(
+      "/api/acc/photos/check",
+      { photoIds },
+      { signal: controller.signal }
+    )
+      .then((data) => {
+        const nextUploaded = new Set(data.uploadedIds ?? []);
+        setUploadedPhotoIds(nextUploaded);
+        setSelectedPhotos((prev) => {
+          if (prev.size === 0) {
+            return prev;
+          }
+          const next = new Set(prev);
+          for (const id of nextUploaded) {
+            next.delete(id);
+          }
+          return next;
+        });
+      })
+      .catch((err: unknown) => {
+        if (controller.signal.aborted) {
+          return;
+        }
+        setError(
+          err instanceof Error ? err.message : "Failed to check uploads"
+        );
+      })
+      .finally(() => {
+        if (controller.signal.aborted) {
+          return;
+        }
+        setLoadingUploaded(false);
+      });
+
+    return () => controller.abort();
+  }, [open, photos, projectId]);
+
   const isBusy = useMemo(
-    () => loadingHubs || loadingProjects || loadingPhotos,
-    [loadingHubs, loadingPhotos, loadingProjects]
+    () => loadingHubs || loadingProjects || loadingPhotos || loadingUploaded,
+    [loadingHubs, loadingPhotos, loadingProjects, loadingUploaded]
   );
 
   const formatTakenAt = useCallback((takenAt: string) => {
     const date = new Date(takenAt);
-    if (Number.isNaN(date.valueOf())) return null;
+    if (Number.isNaN(date.valueOf())) {
+      return null;
+    }
     return date.toLocaleString();
   }, []);
 
   const projectPlaceholder = useMemo(() => {
-    if (!hubId) return "Select a hub first";
-    if (loadingProjects) return "Loading projects…";
+    if (!hubId) {
+      return "Select a hub first";
+    }
+    if (loadingProjects) {
+      return "Loading projects…";
+    }
     return "Select a project";
   }, [hubId, loadingProjects]);
+
+  const selectedCount = selectedPhotos.size;
+
+  const selectablePhotoIds = useMemo(() => {
+    const ids: string[] = [];
+    for (const photo of photos) {
+      if (!photo.id) {
+        continue;
+      }
+      if (uploadedPhotoIds.has(photo.id)) {
+        continue;
+      }
+      ids.push(photo.id);
+    }
+    return ids;
+  }, [photos, uploadedPhotoIds]);
+
+  const togglePhoto = useCallback(
+    (photoId: string) => {
+      if (!photoId) {
+        return;
+      }
+      if (uploadedPhotoIds.has(photoId)) {
+        return;
+      }
+      setSelectedPhotos((prev) => {
+        const next = new Set(prev);
+        if (next.has(photoId)) {
+          next.delete(photoId);
+        } else {
+          next.add(photoId);
+        }
+        return next;
+      });
+    },
+    [uploadedPhotoIds]
+  );
+
+  const selectAll = useCallback(() => {
+    setSelectedPhotos(new Set(selectablePhotoIds));
+  }, [selectablePhotoIds]);
+
+  const deselectAll = useCallback(() => {
+    setSelectedPhotos(new Set());
+  }, []);
+
+  const uploadSelected = useCallback(async () => {
+    if (!projectId) {
+      return;
+    }
+
+    const photosToUpload = photos.filter(
+      (photo) => photo.id && selectedPhotos.has(photo.id)
+    );
+    if (photosToUpload.length === 0) {
+      return;
+    }
+
+    setError(null);
+    setUploading(true);
+
+    try {
+      const data = await postJson<{
+        started?: Array<{ id: string; runId: string }>;
+        skippedIds?: string[];
+        errors?: Array<{ id: string; error: string }>;
+      }>("/api/upload/from-acc", { photos: photosToUpload, hubId, projectId });
+
+      const startedIds = (data.started ?? []).map((item) => item.id);
+      if (startedIds.length > 0) {
+        setUploadedPhotoIds((prev) => new Set([...prev, ...startedIds]));
+      }
+      setSelectedPhotos(new Set());
+
+      const skipped = data.skippedIds?.length ?? 0;
+      const failed = data.errors?.length ?? 0;
+      toast.success(buildUploadSummary(startedIds.length, skipped, failed));
+    } catch (err: unknown) {
+      const message =
+        err instanceof Error ? err.message : "Failed to start uploads";
+      setError(message);
+      toast.error(message);
+    } finally {
+      setUploading(false);
+    }
+  }, [hubId, photos, projectId, selectedPhotos]);
 
   let photosContent: ReactNode;
   if (loadingPhotos) {
@@ -164,35 +375,63 @@ export function ImportPhotosDialog({ open }: Props) {
   } else {
     photosContent = (
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
-        {photos.map((photo) => (
-          <div className="overflow-hidden rounded-lg border" key={photo.id}>
-            <div className="relative aspect-square bg-muted">
-              {photo.thumbnailUrl ? (
-                <Image
-                  alt={photo.title || "ACC photo"}
-                  className="object-cover"
-                  fill
-                  sizes="(min-width: 1024px) 25vw, (min-width: 640px) 33vw, 50vw"
-                  src={photo.thumbnailUrl}
-                />
-              ) : (
-                <div className="flex h-full items-center justify-center text-muted-foreground text-xs">
-                  No thumbnail
+        {photos.map((photo) => {
+          const isUploaded = uploadedPhotoIds.has(photo.id);
+          const isSelected = selectedPhotos.has(photo.id);
+          let overlay: ReactNode = null;
+          if (isUploaded) {
+            overlay = (
+              <div className="absolute inset-0 grid place-items-center bg-background/70">
+                <div className="flex items-center gap-2 rounded-full border bg-background/80 px-3 py-1 text-sm">
+                  <CheckCircle2Icon className="size-4 text-emerald-600" />
+                  Uploaded
                 </div>
-              )}
-            </div>
-            <div className="grid gap-1 p-2">
-              <div className="line-clamp-1 font-medium text-sm">
-                {photo.title || "Untitled"}
               </div>
-              {photo.takenAt && (
-                <div className="text-muted-foreground text-xs">
-                  {formatTakenAt(photo.takenAt)}
+            );
+          } else if (isSelected) {
+            overlay = (
+              <div className="absolute top-2 right-2 grid size-7 place-items-center rounded-full bg-primary text-primary-foreground shadow">
+                <CheckIcon className="size-4" />
+              </div>
+            );
+          }
+          return (
+            <button
+              className="overflow-hidden rounded-lg border text-left disabled:cursor-not-allowed disabled:opacity-75"
+              disabled={isUploaded}
+              key={photo.id}
+              onClick={() => togglePhoto(photo.id)}
+              type="button"
+            >
+              <div className="relative aspect-square bg-muted">
+                {photo.thumbnailUrl ? (
+                  <Image
+                    alt={photo.title || "ACC photo"}
+                    className="object-cover"
+                    fill
+                    sizes="(min-width: 1024px) 25vw, (min-width: 640px) 33vw, 50vw"
+                    src={photo.thumbnailUrl}
+                  />
+                ) : (
+                  <div className="flex h-full items-center justify-center text-muted-foreground text-xs">
+                    No thumbnail
+                  </div>
+                )}
+                {overlay}
+              </div>
+              <div className="grid gap-1 p-2">
+                <div className="line-clamp-1 font-medium text-sm">
+                  {photo.title || "Untitled"}
                 </div>
-              )}
-            </div>
-          </div>
-        ))}
+                {photo.takenAt && (
+                  <div className="text-muted-foreground text-xs">
+                    {formatTakenAt(photo.takenAt)}
+                  </div>
+                )}
+              </div>
+            </button>
+          );
+        })}
       </div>
     );
   }
@@ -200,7 +439,9 @@ export function ImportPhotosDialog({ open }: Props) {
   return (
     <Dialog
       onOpenChange={(nextOpen) => {
-        if (!nextOpen) close();
+        if (!nextOpen) {
+          close();
+        }
       }}
       open={open}
     >
@@ -260,6 +501,36 @@ export function ImportPhotosDialog({ open }: Props) {
             </div>
           )}
 
+          {photos.length > 0 && projectId && (
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div className="text-muted-foreground text-sm">
+                {loadingUploaded
+                  ? "Checking uploaded photos…"
+                  : `${selectedCount} selected`}
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  disabled={isBusy || selectablePhotoIds.length === 0}
+                  onClick={selectAll}
+                  size="sm"
+                  type="button"
+                  variant="outline"
+                >
+                  Select All
+                </Button>
+                <Button
+                  disabled={isBusy || selectedCount === 0}
+                  onClick={deselectAll}
+                  size="sm"
+                  type="button"
+                  variant="outline"
+                >
+                  Deselect All
+                </Button>
+              </div>
+            </div>
+          )}
+
           <ScrollArea className="h-[60vh] rounded-md border p-3">
             {photosContent}
           </ScrollArea>
@@ -268,6 +539,20 @@ export function ImportPhotosDialog({ open }: Props) {
         <DialogFooter>
           <Button disabled={isBusy} onClick={close} variant="outline">
             Close
+          </Button>
+          <Button
+            disabled={isBusy || uploading || selectedCount === 0}
+            onClick={uploadSelected}
+            type="button"
+          >
+            {uploading ? (
+              <>
+                <Spinner className="mr-2" />
+                Uploading…
+              </>
+            ) : (
+              "Upload Selected"
+            )}
           </Button>
         </DialogFooter>
       </DialogContent>
