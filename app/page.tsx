@@ -37,7 +37,7 @@ type PageProps = {
     | Record<string, string | string[] | undefined>;
 };
 
-const Home = async ({ searchParams }: PageProps) => {
+const HomeContent = async ({ searchParams }: PageProps) => {
   const resolvedSearchParams = await Promise.resolve(searchParams ?? {});
   const shouldImport = Boolean(resolvedSearchParams.import);
 
@@ -58,5 +58,11 @@ const Home = async ({ searchParams }: PageProps) => {
     </UploadedImagesProvider>
   );
 };
+
+const Home = ({ searchParams }: PageProps) => (
+  <Suspense fallback={<ImagesSkeleton />}>
+    <HomeContent searchParams={searchParams} />
+  </Suspense>
+);
 
 export default Home;

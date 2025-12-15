@@ -9,7 +9,7 @@ import {
   Loader2Icon,
   UploadIcon,
 } from "lucide-react";
-import { useActionState, useEffect } from "react";
+import { useActionState, useEffect, useState } from "react";
 import { toast } from "sonner";
 import { search } from "@/app/actions/search";
 import { Preview } from "./preview";
@@ -28,6 +28,9 @@ const PRIORITY_COUNT = 12;
 export const ResultsClient = ({ defaultData }: ResultsClientProps) => {
   const { images } = useUploadedImages();
   const [state, formAction, isPending] = useActionState(search, { data: [] });
+  const [deletedPathnames, setDeletedPathnames] = useState<Set<string>>(
+    () => new Set()
+  );
 
   useEffect(() => {
     if ("error" in state) {
@@ -39,6 +42,11 @@ export const ResultsClient = ({ defaultData }: ResultsClientProps) => {
     window.location.reload();
   };
 
+  const handleDelete = (pathname: string) => {
+    setDeletedPathnames((prev) => new Set([...prev, pathname]));
+    toast.success("Image deleted");
+  };
+
   const hasImages =
     images.length ||
     defaultData.length ||
@@ -48,28 +56,38 @@ export const ResultsClient = ({ defaultData }: ResultsClientProps) => {
     <>
       {hasImages ? (
         <div className="gap-4 sm:columns-2 md:columns-3 lg:columns-2 xl:columns-3">
-          {images.map((image, index) => (
-            <Preview
-              key={image.url}
-              priority={index < PRIORITY_COUNT}
-              url={image.url}
-            />
-          ))}
+          {images
+            .filter((image) => !deletedPathnames.has(image.pathname))
+            .map((image, index) => (
+              <Preview
+                key={image.url}
+                priority={index < PRIORITY_COUNT}
+                url={image.url}
+              />
+            ))}
           {"data" in state && state.data?.length
-            ? state.data.map((blob, index) => (
-                <Preview
-                  key={blob.url}
-                  priority={index < PRIORITY_COUNT}
-                  url={blob.url}
-                />
-              ))
-            : defaultData.map((blob, index) => (
-                <Preview
-                  key={blob.url}
-                  priority={index < PRIORITY_COUNT}
-                  url={blob.downloadUrl}
-                />
-              ))}
+            ? state.data
+                .filter((blob) => !deletedPathnames.has(blob.pathname))
+                .map((blob, index) => (
+                  <Preview
+                    key={blob.url}
+                    onDelete={handleDelete}
+                    pathname={blob.pathname}
+                    priority={index < PRIORITY_COUNT}
+                    url={blob.url}
+                  />
+                ))
+            : defaultData
+                .filter((blob) => !deletedPathnames.has(blob.pathname))
+                .map((blob, index) => (
+                  <Preview
+                    key={blob.url}
+                    onDelete={handleDelete}
+                    pathname={blob.pathname}
+                    priority={index < PRIORITY_COUNT}
+                    url={blob.url}
+                  />
+                ))}
         </div>
       ) : (
         <Empty className="h-full min-h-[50vh] rounded-lg border">
