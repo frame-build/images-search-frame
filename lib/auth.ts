@@ -58,7 +58,8 @@ export async function getSession(): Promise<AccSession | null> {
     return stored
   }
 
-  if (!stored.refreshToken) return stored
+  // Token expires within 30 seconds - try to refresh
+  if (!stored.refreshToken) return null
 
   try {
     const refreshed = await authClient.refreshToken(stored.refreshToken, env.ACC_CLIENT_ID, {
@@ -76,7 +77,8 @@ export async function getSession(): Promise<AccSession | null> {
     await redis.set(sessionKey(sessionId), updated, { ex: SESSION_TTL_SECONDS })
     return updated
   } catch {
-    return stored
+    // Refresh failed - return null to force re-authentication
+    return null
   }
 }
 
