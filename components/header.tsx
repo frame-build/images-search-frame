@@ -1,6 +1,7 @@
 import { CheckCircle2Icon, ImageUpIcon } from "lucide-react";
 import { Suspense } from "react";
 import { ImportPhotosButton } from "./deploy";
+import { ThemeToggle } from "./theme-toggle";
 import { Button } from "./ui/button";
 
 type HeaderProps = {
@@ -97,7 +98,7 @@ export const Header = ({ hasSession }: HeaderProps) => {
       </ul>
 
       <div className="flex flex-col gap-2">
-        <div className="flex gap-2">
+        <div className="flex items-center gap-2">
           <Suspense fallback={null}>
             <ImportPhotosButton />
           </Suspense>
@@ -106,6 +107,7 @@ export const Header = ({ hasSession }: HeaderProps) => {
               Source code
             </a>
           </Button>
+          <ThemeToggle />
         </div>
 
         {hasSession ? (

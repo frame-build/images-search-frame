@@ -5,6 +5,7 @@ import { Analytics } from "@vercel/analytics/next";
 import type { ReactNode } from "react";
 import { Toaster } from "@/components/ui/sonner";
 import { cn } from "@/lib/utils";
+import { ThemeProvider } from "@/components/theme-provider";
 
 const sans = Geist({
   variable: "--font-sans",
@@ -30,11 +31,13 @@ type RootLayoutProps = {
 };
 
 const RootLayout = ({ children }: RootLayoutProps) => (
-  <html lang="en">
+  <html lang="en" suppressHydrationWarning>
     <body className={cn(sans.variable, mono.variable, "antialiased")}>
-      {children}
-      <Analytics />
-      <Toaster />
+      <ThemeProvider>
+        {children}
+        <Analytics />
+        <Toaster />
+      </ThemeProvider>
     </body>
   </html>
 );
