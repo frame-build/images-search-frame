@@ -13,21 +13,20 @@ export const metadata: Metadata = {
 };
 
 const ImagesSkeleton = () => (
-  <div className="columns-3 gap-4">
-    {[
-      { id: "skeleton-1", aspect: "aspect-square" },
-      { id: "skeleton-2", aspect: "aspect-video" },
-      { id: "skeleton-3", aspect: "aspect-[9/16]" },
-      { id: "skeleton-4", aspect: "aspect-square" },
-      { id: "skeleton-5", aspect: "aspect-video" },
-      { id: "skeleton-6", aspect: "aspect-[9/16]" },
-      { id: "skeleton-7", aspect: "aspect-square" },
-      { id: "skeleton-8", aspect: "aspect-video" },
-      { id: "skeleton-9", aspect: "aspect-[9/16]" },
-    ].map(({ id, aspect }) => {
-      const className = `mb-4 rounded-xl bg-card p-2 shadow-xl ${aspect}`;
-      return <div className={className} key={id} />;
-    })}
+  <div className="h-full min-h-[50vh] max-h-[50vh] overflow-hidden rounded-lg border p-4">
+    <div className="gap-4 sm:columns-2 md:columns-3 lg:columns-2 xl:columns-3">
+      {[
+        { id: "skeleton-1", aspect: "aspect-square" },
+        { id: "skeleton-2", aspect: "aspect-video" },
+        { id: "skeleton-3", aspect: "aspect-[9/16]" },
+        { id: "skeleton-4", aspect: "aspect-square" },
+        { id: "skeleton-5", aspect: "aspect-video" },
+        { id: "skeleton-6", aspect: "aspect-[9/16]" },
+      ].map(({ id, aspect }) => {
+        const className = `mb-4 rounded-xl bg-muted/40 p-2 ${aspect} animate-pulse`;
+        return <div className={className} key={id} />;
+      })}
+    </div>
   </div>
 );
 
@@ -37,32 +36,36 @@ type PageProps = {
     | Record<string, string | string[] | undefined>;
 };
 
-const HomeContent = async ({ searchParams }: PageProps) => {
-  const resolvedSearchParams = await Promise.resolve(searchParams ?? {});
-  const shouldImport = Boolean(resolvedSearchParams.import);
-
+const AuthenticatedResults = async () => {
   const session = await getSession();
   if (!session) return <Login />;
 
+  return <Results />;
+};
+
+const ImportDialogGate = async ({ searchParams }: PageProps) => {
+  const resolvedSearchParams = await Promise.resolve(searchParams ?? {});
+  const shouldImport = Boolean(resolvedSearchParams.import);
+
+  return <ImportPhotosDialog open={shouldImport} />;
+};
+
+const Home = ({ searchParams }: PageProps) => {
   return (
     <UploadedImagesProvider>
-      <ImportPhotosDialog open={shouldImport} />
+      <Suspense fallback={null}>
+        <ImportDialogGate searchParams={searchParams} />
+      </Suspense>
       <div className="container relative mx-auto grid items-start gap-12 px-4 py-8 sm:gap-16 lg:grid-cols-[300px_1fr]">
         <div className="lg:sticky lg:top-8">
           <Header />
         </div>
         <Suspense fallback={<ImagesSkeleton />}>
-          <Results />
+          <AuthenticatedResults />
         </Suspense>
       </div>
     </UploadedImagesProvider>
   );
 };
-
-const Home = ({ searchParams }: PageProps) => (
-  <Suspense fallback={<ImagesSkeleton />}>
-    <HomeContent searchParams={searchParams} />
-  </Suspense>
-);
 
 export default Home;
