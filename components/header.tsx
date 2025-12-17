@@ -75,6 +75,20 @@ export const Header = ({ hasSession }: HeaderProps) => {
         <li className="flex gap-2">
           <CheckCircle2Icon className="mt-0.5 size-4 shrink-0" />
           <p className="text-sm">
+            Stores ACC OAuth sessions in{" "}
+            <a
+              className="underline"
+              href="https://upstash.com/docs/redis/overall/getstarted"
+              rel="noopener noreferrer"
+              target="_blank"
+            >
+              Upstash Redis
+            </a>
+          </p>
+        </li>
+        <li className="flex gap-2">
+          <CheckCircle2Icon className="mt-0.5 size-4 shrink-0" />
+          <p className="text-sm">
             Reference pipeline uses{" "}
             <a
               className="underline"
@@ -128,7 +142,16 @@ export const Header = ({ hasSession }: HeaderProps) => {
           >
             Hayden Bleasel
           </a>{" "}
-          for the original repo.
+          for the original repo. Theme switcher adapted from{" "}
+          <a
+            className="underline"
+            href="https://gxuri.in"
+            rel="noopener noreferrer"
+            target="_blank"
+          >
+            Skiper UI
+          </a>
+          .
         </p>
       </div>
     </div>

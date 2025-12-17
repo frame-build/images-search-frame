@@ -53,10 +53,10 @@ export const Preview = ({ url, priority, pathname, onDelete }: PreviewProps) => 
   };
 
   return (
-    <div className="group relative mb-4 rounded-xl bg-card p-2 shadow-xl">
+    <div className="group relative rounded-xl bg-card p-2 shadow-xl">
       <Image
         alt={url}
-        className="rounded-md"
+        className="block h-auto w-full rounded-md"
         height={630}
         priority={priority}
         sizes="630px"

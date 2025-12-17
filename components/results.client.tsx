@@ -55,7 +55,7 @@ export const ResultsClient = ({ defaultData }: ResultsClientProps) => {
   return (
     <>
       {hasImages ? (
-        <div className="gap-4 sm:columns-2 md:columns-3 lg:columns-2 xl:columns-3">
+        <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-2 xl:grid-cols-3">
           {images
             .filter((image) => !deletedPathnames.has(image.pathname))
             .map((image, index) => (
