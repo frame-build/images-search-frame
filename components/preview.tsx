@@ -53,16 +53,17 @@ export const Preview = ({ url, priority, pathname, onDelete }: PreviewProps) => 
   };
 
   return (
-    <div className="group relative rounded-xl bg-card p-2 shadow-xl">
-      <Image
-        alt={url}
-        className="block h-auto w-full rounded-md"
-        height={630}
-        priority={priority}
-        sizes="630px"
-        src={url}
-        width={630}
-      />
+    <div className="group relative mb-4 rounded-xl bg-card p-2 shadow-xl">
+      <div className="relative aspect-[4/3] w-full overflow-hidden rounded-md bg-muted">
+        <Image
+          alt="Image preview"
+          className="object-cover"
+          fill
+          priority={priority}
+          sizes="(min-width: 1280px) 33vw, (min-width: 768px) 50vw, 100vw"
+          src={url}
+        />
+      </div>
 
       <div className="pointer-events-none absolute inset-2 flex items-center justify-center gap-2 rounded-md bg-black/40 opacity-0 transition-opacity group-hover:opacity-100">
         <Dialog>
