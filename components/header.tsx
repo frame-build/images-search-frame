@@ -6,9 +6,10 @@ import { Button } from "./ui/button";
 
 type HeaderProps = {
   hasSession?: boolean;
+  readOnly?: boolean;
 };
 
-export const Header = ({ hasSession }: HeaderProps) => {
+export const Header = ({ hasSession, readOnly = false }: HeaderProps) => {
   const repoUrl =
     process.env.NEXT_PUBLIC_REPO_URL ?? "https://github.com/vercel/vectr";
 
@@ -26,6 +27,12 @@ export const Header = ({ hasSession }: HeaderProps) => {
         <p className="text-muted-foreground text-sm italic">
           Try searching for "rebar", "excavator", or "safety signage".
         </p>
+        {readOnly ? (
+          <p className="rounded-md border bg-muted/50 px-3 py-2 text-xs text-muted-foreground">
+            Public read-only mode: search is enabled, uploads/import are
+            disabled.
+          </p>
+        ) : null}
       </div>
 
       <ul className="flex flex-col gap-2 text-muted-foreground sm:gap-4">
@@ -113,9 +120,11 @@ export const Header = ({ hasSession }: HeaderProps) => {
 
       <div className="flex flex-col gap-2">
         <div className="flex items-center gap-2">
-          <Suspense fallback={null}>
-            <ImportPhotosButton />
-          </Suspense>
+          {!readOnly && hasSession ? (
+            <Suspense fallback={null}>
+              <ImportPhotosButton />
+            </Suspense>
+          ) : null}
           <Button asChild size="sm" variant="outline">
             <a href={repoUrl} rel="noopener noreferrer" target="_blank">
               Source code
@@ -124,7 +133,7 @@ export const Header = ({ hasSession }: HeaderProps) => {
           <ThemeToggle />
         </div>
 
-        {hasSession ? (
+        {!readOnly && hasSession ? (
           <div>
             <Button asChild size="sm" variant="outline">
               <a href="/api/auth/logout">Log out</a>

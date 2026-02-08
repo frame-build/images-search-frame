@@ -7,6 +7,7 @@ import {
   ImageIcon,
   ImageUpIcon,
   Loader2Icon,
+  SearchIcon,
   UploadIcon,
 } from "lucide-react";
 import { useActionState, useEffect, useState } from "react";
@@ -21,11 +22,15 @@ import { useUploadedImages } from "./uploaded-images-provider";
 
 type ResultsClientProps = {
   defaultData: ListBlobResult["blobs"];
+  readOnly?: boolean;
 };
 
 const PRIORITY_COUNT = 12;
 
-export const ResultsClient = ({ defaultData }: ResultsClientProps) => {
+export const ResultsClient = ({
+  defaultData,
+  readOnly = false,
+}: ResultsClientProps) => {
   const { images } = useUploadedImages();
   const [state, formAction, isPending] = useActionState(search, { data: [] });
   const [deletedPathnames, setDeletedPathnames] = useState<Set<string>>(
@@ -47,16 +52,20 @@ export const ResultsClient = ({ defaultData }: ResultsClientProps) => {
     toast.success("Image deleted");
   };
 
+  const localImages = readOnly ? [] : images;
+
   const hasImages =
-    images.length ||
+    localImages.length ||
     defaultData.length ||
     ("data" in state && state.data?.length);
+
+  const isSearchDisabled = readOnly ? isPending : isPending || !hasImages;
 
   return (
     <>
       {hasImages ? (
         <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-2 xl:grid-cols-3">
-          {images
+          {localImages
             .filter((image) => !deletedPathnames.has(image.pathname))
             .map((image, index) => (
               <Preview
@@ -71,10 +80,11 @@ export const ResultsClient = ({ defaultData }: ResultsClientProps) => {
                 .map((blob, index) => (
                   <Preview
                     key={blob.url}
-                    onDelete={handleDelete}
-                    pathname={blob.pathname}
                     priority={index < PRIORITY_COUNT}
                     url={blob.url}
+                    {...(readOnly
+                      ? {}
+                      : { pathname: blob.pathname, onDelete: handleDelete })}
                   />
                 ))
             : defaultData
@@ -82,10 +92,11 @@ export const ResultsClient = ({ defaultData }: ResultsClientProps) => {
                 .map((blob, index) => (
                   <Preview
                     key={blob.url}
-                    onDelete={handleDelete}
-                    pathname={blob.pathname}
                     priority={index < PRIORITY_COUNT}
                     url={blob.url}
+                    {...(readOnly
+                      ? {}
+                      : { pathname: blob.pathname, onDelete: handleDelete })}
                   />
                 ))}
         </div>
@@ -105,9 +116,15 @@ export const ResultsClient = ({ defaultData }: ResultsClientProps) => {
             </div>
             <EmptyTitle>No images found</EmptyTitle>
             <EmptyDescription>
-              Upload some images with the{" "}
-              <ImageUpIcon className="inline size-4" /> button below to get
-              started!
+              {readOnly ? (
+                "No indexed images are available for this public demo yet."
+              ) : (
+                <>
+                  Upload some images with the{" "}
+                  <ImageUpIcon className="inline size-4" /> button below to get
+                  started!
+                </>
+              )}
             </EmptyDescription>
           </EmptyHeader>
         </Empty>
@@ -131,7 +148,7 @@ export const ResultsClient = ({ defaultData }: ResultsClientProps) => {
         )}
         <Input
           className="w-full rounded-full border-none bg-secondary shadow-none outline-none"
-          disabled={isPending || !hasImages}
+          disabled={isSearchDisabled}
           id="search"
           name="search"
           placeholder="Search by description"
@@ -140,6 +157,11 @@ export const ResultsClient = ({ defaultData }: ResultsClientProps) => {
         {isPending ? (
           <Button className="shrink-0" disabled size="icon" variant="ghost">
             <Loader2Icon className="size-4 animate-spin" />
+          </Button>
+        ) : readOnly ? (
+          <Button className="shrink-0 rounded-full" size="icon" type="submit">
+            <SearchIcon className="size-4" />
+            <span className="sr-only">Search images</span>
           </Button>
         ) : (
           <UploadButton />

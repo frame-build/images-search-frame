@@ -1,13 +1,13 @@
-import { ImageUpIcon } from "lucide-react"
+import { ImageUpIcon } from "lucide-react";
 
-import { Button } from "@/components/ui/button"
+import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card"
+} from "@/components/ui/card";
 
 export const Login = () => {
   return (
@@ -32,6 +32,5 @@ export const Login = () => {
         </CardContent>
       </Card>
     </div>
-  )
-}
-
+  );
+};
